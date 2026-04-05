@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research Study – AI Conversation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --border: #e2e6ea;
+    --text: #1a1d23;
+    --text-muted: #6b7280;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --bubble-bot: #ffffff;
+    --bubble-user: #2563eb;
+    --bubble-user-text: #ffffff;
+    --danger: #dc2626;
+    --shadow: 0 1px 8px rgba(0,0,0,0.07);
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+  }
+
+  /* ── PROGRESS BAR ── */
+  #progress-bar-wrap {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 3px; background: var(--border); z-index: 100;
+  }
+  #progress-bar {
+    height: 100%; background: var(--accent);
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+
+  /* ── SCREENS ── */
+  .screen {
+    display: none;
+    width: 100%; max-width: 640px;
+    padding: 48px 24px 80px;
+    animation: fadeUp 0.4s ease forwards;
+  }
+  .screen.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── TYPOGRAPHY ── */
+  h1 {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  h2 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  p {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+  p strong { color: var(--text); font-weight: 500; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 13px 28px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    text-transform: uppercase;
+  }
+  .btn:hover { background: #2e5549; }
+  .btn:active { transform: scale(0.98); }
+  .btn-secondary {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--text-muted);
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); background: transparent; }
+  .btn-full { width: 100%; text-align: center; padding: 15px; }
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+
+  /* ── CONSENT CHECKBOXES ── */
+  .consent-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .consent-item:last-child { border-bottom: none; }
+  .consent-item input[type="checkbox"] {
+    width: 18px; height: 18px; margin-top: 2px;
+    accent-color: var(--accent); flex-shrink: 0; cursor: pointer;
+  }
+  .consent-item label { font-size: 0.93rem; line-height: 1.6; cursor: pointer; color: var(--text); }
+
+  /* ── LIKERT SCALE ── */
+  .likert-group { margin-bottom: 28px; }
+  .likert-label { font-size: 0.95rem; line-height: 1.5; margin-bottom: 14px; color: var(--text); }
+  .likert-scale {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    text-align: center;
+  }
+  .likert-scale label {
+    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .likert-scale input[type="radio"] { display: none; }
+  .likert-scale .pip {
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    transition: background 0.1s, border-color 0.1s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .likert-scale input:checked + .pip {
+    background: var(--accent); border-color: var(--accent);
+  }
+  .likert-scale label:hover .pip {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+  .likert-scale .pip-label {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    line-height: 1.2;
+    text-align: center;
+    max-width: 56px;
+  }
+  .scale-ends {
+    display: flex; justify-content: space-between;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    padding: 0 4px;
+  }
+
+  /* ── SELECT / INPUT ── */
+  select, input[type="number"], input[type="text"], textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.93rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    margin-top: 6px;
+  }
+  select:focus, input:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 90px; }
+  .form-group { margin-bottom: 22px; }
+  .form-label {
+    display: block;
+    font-size: 0.93rem;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  /* ── RADIO CARD OPTIONS ── */
+  .option-cards { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+  .option-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--surface);
+  }
+  .option-card:hover { border-color: var(--accent); background: var(--accent-light); }
+  .option-card.selected { border-color: var(--accent); background: var(--accent-light); }
+  .option-card input[type="radio"] { display: none; }
+  .option-card-dot {
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 50%; flex-shrink: 0;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .option-card.selected .option-card-dot {
+    border-color: var(--accent); background: var(--accent);
+    box-shadow: inset 0 0 0 3px white;
+  }
+  .option-card span { font-size: 0.95rem; }
+
+  /* ── CHAT UI ── */
+  #chat-screen { padding-bottom: 32px; }
+  .chat-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .chat-avatar {
+    width: 38px; height: 38px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 1rem; flex-shrink: 0;
+  }
+  .chat-name { font-weight: 500; font-size: 0.97rem; }
+  .chat-status {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.68rem;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+
+  #chat-messages, #chat2-messages {
+    display: flex; flex-direction: column; gap: 20px;
+    min-height: 200px;
+    padding-bottom: 8px;
+  }
+
+  .msg { display: flex; gap: 10px; max-width: 88%; }
+  .msg.bot { align-self: flex-start; }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 32px; height: 32px; flex-shrink: 0;
+    background: var(--accent); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 0.8rem; margin-top: 2px;
+  }
+  .msg.user .msg-avatar { background: #b0a898; }
+
+  .msg-bubble {
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    max-width: 100%;
+  }
+  .msg.bot .msg-bubble {
+    background: var(--bubble-bot);
+    border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+    color: var(--text);
+    box-shadow: var(--shadow);
+  }
+  .msg.user .msg-bubble {
+    background: var(--bubble-user);
+    color: var(--bubble-user-text);
+    border-top-right-radius: 4px;
+  }
+
+  /* typing indicator */
+  .typing { display: flex; align-items: center; gap: 5px; padding: 4px 0; }
+  .typing span {
+    width: 7px; height: 7px;
+    background: var(--text-muted); border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%,60%,100% { transform: translateY(0); }
+    30% { transform: translateY(-5px); }
+  }
+
+  /* chat choice buttons */
+  #chat-choices { margin-top: 18px; }
+  .choice-btn {
+    display: block; width: 100%;
+    text-align: left;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 16px;
+    margin-bottom: 9px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.95rem;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s, color 0.1s;
+  }
+  .choice-btn:hover,
+  .choice-btn:focus {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+    outline: none;
+  }
+  .choice-btn:active {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #fff;
+  }
+  .choice-btn:disabled { opacity: 0.4; cursor: default; background: var(--surface); border-color: var(--border); color: var(--text); }
+
+  /* chat input row (free text) */
+  #chat-input-row {
+    display: flex; gap: 10px; margin-top: 16px;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+  #chat-input {
+    flex: 1; padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.93rem;
+    outline: none;
+    transition: border-color 0.2s;
+    background: var(--surface);
+  }
+  #chat-input:focus { border-color: var(--accent); }
+  #chat-send {
+    background: var(--accent); color: white;
+    border: none; border-radius: 8px;
+    padding: 0 18px; cursor: pointer;
+    font-size: 1.1rem; transition: background 0.2s;
+  }
+  #chat-send:hover { background: #1d4ed8; }
+
+  /* ── SAVE PROMPT ── */
+  .save-card {
+    background: var(--accent-light);
+    border: 1.5px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin: 24px 0;
+    text-align: center;
+  }
+  .save-card p { color: var(--text); margin-bottom: 14px; font-size: 0.97rem; }
+  .save-row { display: flex; gap: 12px; justify-content: center; }
+  .save-btn {
+    flex: 1;
+    max-width: 200px;
+    padding: 13px 20px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .save-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .save-btn.selected { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* ── DEBRIEF ── */
+  .debrief-box {
+    background: #fef9e7;
+    border: 1.5px solid #f0c040;
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    margin-bottom: 20px;
+  }
+  .debrief-box h3 { font-size: 1rem; font-weight: 500; margin-bottom: 10px; color: #7a5c00; }
+  .debrief-box p { color: #5a4400; margin-bottom: 0; }
+
+  /* ── THANK YOU ── */
+  #thankyou-screen { text-align: center; padding-top: 80px; }
+  .check-circle {
+    width: 64px; height: 64px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 24px;
+    font-size: 1.8rem; color: white;
+  }
+
+  /* ── VALIDATION ── */
+  .error-msg {
+    color: var(--danger);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.75rem;
+    margin-top: 8px;
+    display: none;
+  }
+  .error-msg.visible { display: block; }
+
+  /* ── DIVIDER ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  /* ── SCENARIO LABEL ── */
+  .scenario-badge {
+    display: inline-block;
+    background: var(--accent-light);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 1.4rem; }
+    .likert-scale .pip { width: 30px; height: 30px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 0 · INFORMATION SHEET
+══════════════════════════════════════════ -->
+<div class="screen active" id="screen-info">
+  <div class="eyebrow">Participant Information Sheet</div>
+  <h1>A study investigating methods for enhancing user performance and experience in human-computer interaction tasks.</h1>
+
+  <p>Thank you for your interest in this study. Before you decide to take part, it is important for you to understand why the research is being done and what it will involve. Please take time to read the following information carefully and discuss it with others if you wish. The study organiser is available if there is anything that is not clear or if you would like more information. Take time to decide whether or not you wish to take part.</p>
+
+  <div class="card">
+    <div class="eyebrow" style="margin-bottom:12px">Purpose of the study</div>
+    <p style="color:var(--text); margin-bottom:0">This study aims to investigate how user performance and experience in computer-based tasks can be improved by novel interface or interaction features. The specific details of the study will be explained by the study organiser but the tasks you will undertake will involve some combination of: (i) transcribing, composing or editing text or code; (ii) assessing the quality of system-produced suggestions, explanations or task-assistance; and (iii) providing feedback in relation to presented images, video, audio or text. As you complete these tasks, we will log data reflecting how well the system supported you in executing the task, what interaction behaviours you exhibited, and details about your subjective user experience. At the end of the study, you may also be asked to reflect upon and compare your experience of the different tasks performed and interfaces experienced. Your participation in this study will contribute to a better understanding of user needs and behaviours, and inform human-computer interaction design more broadly. Further details are provided below.</p>
+  </div>
+
+  <div class="card">
+    <div style="margin-bottom:18px">
+      <p style="color:var(--text); font-weight:600; margin-bottom:4px">1. Why have I been chosen?</p>
+      <p style="margin-bottom:0">We aim to recruit a diverse range of participants to study user performance and experience in relation to computer-based tasks. No specialised background is typically required. However, in some cases we may specifically recruit participants with a particular background (e.g. existing knowledge of a topic or prior task experience) to examine how this influences task performance and experience. If relevant, this will be clearly stated in the call for participants or explained by the study organiser.</p>
+    </div>
+    <div style="margin-bottom:18px">
+      <p style="color:var(--text); font-weight:600; margin-bottom:4px">2. Do I have to take part?</p>
+      <p style="margin-bottom:0">No, participation is entirely voluntary. If you do decide to take part, you can still withdraw from the study at any time, without giving any reasons.</p>
+    </div>
+    <div style="margin-bottom:18px">
+      <p style="color:var(--text); font-weight:600; margin-bottom:4px">3. Who is organising the study?</p>
+      <p style="margin-bottom:0">Dr John Dudley is the Principal Investigator for this research study. He is based in the Department of Engineering at the University of Cambridge.</p>
+    </div>
+    <div style="margin-bottom:18px">
+      <p style="color:var(--text); font-weight:600; margin-bottom:4px">4. What will happen during the study?</p>
+      <p style="margin-bottom:0">You will be introduced to the study procedure and the tasks that you will be asked to perform. You may be asked to provide basic demographic data (e.g. age, gender, prior experience) but you may decline to provide this information if you wish. You will then be asked to complete the specified tasks during which performance data (e.g. task completion time) and interaction data (e.g. button click sequence) will be logged. At various intervals, you may also be asked questions regarding your experience of executing the tasks. This may include providing feedback, rating aspects of the task or system, and completing questionnaires regarding perceived workload (NASA-TLX), usability (SUS), user experience (UEQ), understanding (MMS), and creativity (CSI).</p>
+    </div>
+    <div style="margin-bottom:18px">
+      <p style="color:var(--text); font-weight:600; margin-bottom:4px">5. What are the possible risks of taking part?</p>
+      <p style="margin-bottom:0">The study will be completed on a computer, laptop, or smartphone, and there are no significant risks associated with participation. You may experience mild fatigue from looking at the screen, but you are free to take breaks at any time.</p>
+    </div>
+    <div style="margin-bottom:18px">
+      <p style="color:var(--text); font-weight:600; margin-bottom:4px">6. What happens at the end of the study?</p>
+      <p style="margin-bottom:0">At the end of the study, you may receive a short debrief. You may also ask any questions that you have. If you subsequently have questions, please feel free to contact the study organiser.</p>
+    </div>
+    <div style="margin-bottom:18px">
+      <p style="color:var(--text); font-weight:600; margin-bottom:4px">7. What will happen to the study results?</p>
+      <p style="margin-bottom:0">The anonymised results will be written up and published in academic papers and presented at research meetings. Collected data will be securely stored.</p>
+    </div>
+    <div style="margin-bottom:18px">
+      <p style="color:var(--text); font-weight:600; margin-bottom:4px">8. Anonymity – will I be identified in any publications resulting from the study?</p>
+      <p style="margin-bottom:0">The data will be anonymised and any references to the data will be done so that you are not identifiable.</p>
+    </div>
+    <div style="margin-bottom:18px">
+      <p style="color:var(--text); font-weight:600; margin-bottom:4px">9. What if there is a problem?</p>
+      <p style="margin-bottom:0">If you have a concern about any aspect of this study, you should ask to speak to the study organiser who will do their best to answer your questions.</p>
+    </div>
+    <div style="margin-bottom:0">
+      <p style="color:var(--text); font-weight:600; margin-bottom:4px">10. Who has reviewed the study?</p>
+      <p style="margin-bottom:0">The Department of Engineering Ethics Committee has reviewed this study through the light-touch review process.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="eyebrow" style="margin-bottom:10px">Contact Information</div>
+    <p style="margin-bottom:2px; color:var(--text); font-weight:500">John Dudley</p>
+    <p style="margin-bottom:2px"><a href="mailto:jjd50@cam.ac.uk">jjd50@cam.ac.uk</a></p>
+    <p style="margin-bottom:0">University of Cambridge</p>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn" onclick="infoNext()">I have read this information →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 1 · CONSENT
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-consent">
+  <div class="eyebrow">Participant Consent Form</div>
+  <h1>A study investigating methods for enhancing user performance and experience in human-computer interaction tasks.</h1>
+  <p><strong>Name of Principal Investigator:</strong> Dr John Dudley</p>
+
+  <div class="card">
+    <div class="eyebrow" style="margin-bottom:16px">Please tick all the boxes that apply</div>
+
+    <div class="consent-item">
+      <input type="checkbox" id="c1">
+      <label for="c1">I confirm that I have read and understand the Participant Information Sheet.</label>
+    </div>
+    <div class="consent-item">
+      <input type="checkbox" id="c2">
+      <label for="c2">I have had the opportunity to ask questions and have had these answered satisfactorily.</label>
+    </div>
+    <div class="consent-item">
+      <input type="checkbox" id="c3">
+      <label for="c3">I understand that my participation is voluntary and that I am free to withdraw at any time without giving a reason.</label>
+    </div>
+    <div class="consent-item">
+      <input type="checkbox" id="c4">
+      <label for="c4">I agree that data gathered in this study may be stored anonymously and securely, and may be used for future research.</label>
+    </div>
+    <div class="consent-item">
+      <input type="checkbox" id="c5">
+      <label for="c5">I agree to take part in this study.</label>
+    </div>
+  </div>
+  <p class="error-msg" id="consent-error">Please tick all boxes to continue.</p>
+  <div class="btn-row">
+    <button class="btn" onclick="consentNext()">Begin Study →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 2 · PRE-MEASURES
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-pre">
+  <div class="eyebrow">Before we start</div>
+  <h1>A few quick questions</h1>
+  <p>Please answer these questions before the task. There are no right or wrong answers.</p>
+
+  <div class="card">
+    <div class="eyebrow" style="margin-bottom: 18px">General tendencies</div>
+    <p style="margin-bottom:22px; color:var(--text)">Rate how much you agree with each statement <em>in general</em>.</p>
+
+    <!-- Trait inspiration items (4-item Thrash & Elliot subscale) -->
+    <div class="likert-group">
+      <div class="likert-label">1. I feel inspired on a regular basis.</div>
+      <div class="likert-scale" id="ti1">
+        <label><input type="radio" name="ti1" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="ti1" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="ti1" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="ti1" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="ti1" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+
+    <div class="likert-group">
+      <div class="likert-label">2. I am often inspired by things around me.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="ti2" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="ti2" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="ti2" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="ti2" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="ti2" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+
+    <div class="likert-group">
+      <div class="likert-label">3. I find it easy to get inspired.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="ti3" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="ti3" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="ti3" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="ti3" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="ti3" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+
+    <div class="likert-group" style="margin-bottom:0">
+      <div class="likert-label">4. Inspiration tends to come to me easily.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="ti4" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="ti4" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="ti4" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="ti4" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="ti4" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="eyebrow" style="margin-bottom: 16px">Domain interest</div>
+    <div class="likert-group">
+      <div class="likert-label">How interested are you in travel planning?</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="travel_interest" value="1"><div class="pip"></div><span class="pip-label">Not at all</span></label>
+        <label><input type="radio" name="travel_interest" value="2"><div class="pip"></div><span class="pip-label">Slightly</span></label>
+        <label><input type="radio" name="travel_interest" value="3"><div class="pip"></div><span class="pip-label">Moderately</span></label>
+        <label><input type="radio" name="travel_interest" value="4"><div class="pip"></div><span class="pip-label">Quite</span></label>
+        <label><input type="radio" name="travel_interest" value="5"><div class="pip"></div><span class="pip-label">Very much</span></label>
+      </div>
+    </div>
+    <div class="likert-group" style="margin-bottom:0">
+      <div class="likert-label">How interested are you in cooking?</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="cooking_interest" value="1"><div class="pip"></div><span class="pip-label">Not at all</span></label>
+        <label><input type="radio" name="cooking_interest" value="2"><div class="pip"></div><span class="pip-label">Slightly</span></label>
+        <label><input type="radio" name="cooking_interest" value="3"><div class="pip"></div><span class="pip-label">Moderately</span></label>
+        <label><input type="radio" name="cooking_interest" value="4"><div class="pip"></div><span class="pip-label">Quite</span></label>
+        <label><input type="radio" name="cooking_interest" value="5"><div class="pip"></div><span class="pip-label">Very much</span></label>
+      </div>
+    </div>
+  </div>
+
+  <p class="error-msg" id="pre-error">Please answer all questions before continuing.</p>
+  <div class="btn-row">
+    <button class="btn" onclick="preNext()">Continue →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 3 · TASK INTRO
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-intro">
+  <div class="eyebrow">Your task</div>
+  <h1>Weekend Trip Planning</h1>
+  <div class="card">
+    <p style="color:var(--text); margin-bottom:0">Imagine you are planning a <strong>weekend trip</strong> for yourself. To gather some ideas, you start asking an AI assistant for recommendations.</p>
+  </div>
+  <p>The assistant will ask you a couple of questions and then provide suggestions. Simply chat as you naturally would.</p>
+  <p>Read the responses carefully — you will be asked a few questions about them afterwards.</p>
+  <div class="btn-row">
+    <button class="btn" onclick="goToChat()">Start chatting →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 4 · CHAT
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-chat" style="padding-top: 20px;">
+  <div class="chat-header">
+    <div class="chat-avatar">✦</div>
+    <div>
+      <div class="chat-name">AI Assistant</div>
+      <div class="chat-status">● online</div>
+    </div>
+  </div>
+
+  <div id="chat-messages"></div>
+  <div id="chat-choices"></div>
+
+  <!-- locked input (purely decorative, choices drive conversation) -->
+  <div id="chat-input-row">
+    <input type="text" id="chat-input" placeholder="Use the options above to reply…" disabled>
+    <button id="chat-send" disabled>↑</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 5 · SAVE PROMPT + INSPIRED-BY
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-post1">
+  <div class="eyebrow">After the conversation</div>
+  <h1>Before we continue…</h1>
+
+  <div class="save-card">
+    <p>Do you want to save the response to use later?</p>
+    <div class="save-row">
+      <button class="save-btn" onclick="setSave('yes')">Yes, Save.</button>
+      <button class="save-btn" onclick="setSave('no')">No, thank you.</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="eyebrow" style="margin-bottom:16px">Thinking about the conversation you just had…</div>
+    <p style="color:var(--text); margin-bottom:22px">Please indicate how much you agree with each statement.</p>
+
+    <div class="likert-group">
+      <div class="likert-label">The response inspired me.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="ib1" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="ib1" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="ib1" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="ib1" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="ib1" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+
+    <div class="likert-group" style="margin-bottom:0">
+      <div class="likert-label">Right now, I feel inspired.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="ib2" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="ib2" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="ib2" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="ib2" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="ib2" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+  </div>
+
+  <p class="error-msg" id="post1-error">Please answer all questions and make a save choice before continuing.</p>
+  <div class="btn-row">
+    <button class="btn" onclick="post1Next()">Continue →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 6 · INSPIRED-TO + MANIP CHECK
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-post2">
+  <div class="card">
+    <div class="eyebrow" style="margin-bottom:16px">Thinking about the conversation you just had…</div>
+    <p style="color:var(--text); margin-bottom:22px">Please indicate how much you agree with each statement.</p>
+
+    <div class="likert-group">
+      <div class="likert-label">The response inspires me to do something.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="it1" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="it1" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="it1" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="it1" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="it1" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+
+    <div class="likert-group" style="margin-bottom:0">
+      <div class="likert-label">Right now, I feel motivated to act on these ideas.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="it2" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="it2" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="it2" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="it2" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="it2" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="eyebrow" style="margin-bottom:16px">Thinking about the conversation you just had…</div>
+    <p style="color:var(--text); margin-bottom:22px">Please indicate how much you agree with each statement.</p>
+
+    <div class="likert-group">
+      <div class="likert-label">I experienced the response I received as personalised.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="mc1" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="mc1" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="mc1" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="mc1" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="mc1" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+
+    <div class="likert-group" style="margin-bottom:0">
+      <div class="likert-label">It felt like the response was tailored towards the preferences I had indicated.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="mc2" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="mc2" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="mc2" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="mc2" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="mc2" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+  </div>
+
+  <p class="error-msg" id="post2-error">Please answer all questions before continuing.</p>
+  <div class="btn-row">
+    <button class="btn" onclick="post2Next()">Continue →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 7 · COOKING INTRO
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-intro2">
+  <div class="eyebrow">Second scenario</div>
+  <h1>Cooking Ideas</h1>
+  <div class="card">
+    <p style="color:var(--text); margin-bottom:0">Imagine you are looking for ideas for what to <strong>cook</strong>. To gather some inspiration, you start asking an AI assistant for suggestions.</p>
+  </div>
+  <p>As before, the assistant will ask you a couple of questions and then provide suggestions.</p>
+  <p>Read the responses carefully — you will be asked a few questions about them afterwards.</p>
+  <div class="btn-row">
+    <button class="btn" onclick="goToChat2()">Start chatting →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 8 · COOKING CHAT
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-chat2" style="padding-top: 20px;">
+  <div class="chat-header">
+    <div class="chat-avatar">✦</div>
+    <div>
+      <div class="chat-name">AI Assistant</div>
+      <div class="chat-status">● online</div>
+    </div>
+  </div>
+  <div id="chat2-messages"></div>
+  <div id="chat2-choices"></div>
+  <div id="chat2-input-row" style="display:flex; gap:10px; margin-top:16px; border-top:1px solid var(--border); padding-top:16px;">
+    <input type="text" id="chat2-input" placeholder="Use the options above to reply…" disabled style="flex:1; padding:11px 14px; border:1.5px solid var(--border); border-radius:8px; font-family:'Inter',system-ui,sans-serif; font-size:0.93rem; outline:none; background:var(--surface);">
+    <button id="chat2-send" disabled style="background:var(--accent);color:white;border:none;border-radius:8px;padding:0 18px;cursor:pointer;font-size:1.1rem;">↑</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 9 · COOKING POST1: SAVE + INSPIRED-BY
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-post1c">
+  <div class="eyebrow">After the conversation</div>
+  <h1>Before we continue…</h1>
+
+  <div class="save-card">
+    <p>Do you want to save the response to use later?</p>
+    <div class="save-row">
+      <button class="save-btn" id="save-yes-c" onclick="setSaveC('yes')">Yes, Save.</button>
+      <button class="save-btn" id="save-no-c" onclick="setSaveC('no')">No, thank you.</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="eyebrow" style="margin-bottom:16px">Thinking about the conversation you just had…</div>
+    <p style="color:var(--text); margin-bottom:22px">Please indicate how much you agree with each statement.</p>
+
+    <div class="likert-group">
+      <div class="likert-label">The response inspired me.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="ib1c" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="ib1c" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="ib1c" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="ib1c" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="ib1c" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+    <div class="likert-group" style="margin-bottom:0">
+      <div class="likert-label">Right now, I feel inspired.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="ib2c" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="ib2c" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="ib2c" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="ib2c" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="ib2c" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+  </div>
+
+  <p class="error-msg" id="post1c-error">Please answer all questions and make a save choice before continuing.</p>
+  <div class="btn-row">
+    <button class="btn" onclick="post1cNext()">Continue →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 10 · COOKING POST2: INSPIRED-TO + MANIP CHECK
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-post2c">
+  <div class="card">
+    <div class="eyebrow" style="margin-bottom:16px">Thinking about the conversation you just had…</div>
+    <p style="color:var(--text); margin-bottom:22px">Please indicate how much you agree with each statement.</p>
+
+    <div class="likert-group">
+      <div class="likert-label">The response inspires me to do something.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="it1c" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="it1c" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="it1c" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="it1c" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="it1c" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+    <div class="likert-group" style="margin-bottom:0">
+      <div class="likert-label">Right now, I feel motivated to act on these ideas.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="it2c" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="it2c" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="it2c" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="it2c" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="it2c" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="eyebrow" style="margin-bottom:16px">Thinking about the conversation you just had…</div>
+    <p style="color:var(--text); margin-bottom:22px">Please indicate how much you agree with each statement.</p>
+
+    <div class="likert-group">
+      <div class="likert-label">I experienced the response I received as personalised.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="mc1c" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="mc1c" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="mc1c" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="mc1c" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="mc1c" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+    <div class="likert-group" style="margin-bottom:0">
+      <div class="likert-label">It felt like the response was tailored towards the preferences I had indicated.</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="mc2c" value="1"><div class="pip"></div><span class="pip-label">Strongly disagree</span></label>
+        <label><input type="radio" name="mc2c" value="2"><div class="pip"></div><span class="pip-label">Somewhat disagree</span></label>
+        <label><input type="radio" name="mc2c" value="3"><div class="pip"></div><span class="pip-label">Neither</span></label>
+        <label><input type="radio" name="mc2c" value="4"><div class="pip"></div><span class="pip-label">Somewhat agree</span></label>
+        <label><input type="radio" name="mc2c" value="5"><div class="pip"></div><span class="pip-label">Strongly agree</span></label>
+      </div>
+    </div>
+  </div>
+
+  <p class="error-msg" id="post2c-error">Please answer all questions before continuing.</p>
+  <div class="btn-row">
+    <button class="btn" onclick="post2cNext()">Continue →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 11 · DEMOGRAPHICS + FREE TEXT
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-demo">
+  <div class="eyebrow">Almost done</div>
+  <h1>Demographic Questions</h1>
+  <p>Please answer the following questions. It is fine to leave a response blank if you would prefer not to answer. All data will be anonymised.</p>
+
+  <div class="card">
+    <div class="form-group">
+      <label class="form-label">1. Age</label>
+      <input type="number" id="demo_age" min="18" max="100" placeholder="e.g. 24">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">2. Gender</label>
+      <div class="option-cards" id="gender-options">
+        <label class="option-card" onclick="selectOptionCard(this, 'gender', 'female')">
+          <input type="radio" name="gender" value="female">
+          <div class="option-card-dot"></div><span>Female</span>
+        </label>
+        <label class="option-card" onclick="selectOptionCard(this, 'gender', 'male')">
+          <input type="radio" name="gender" value="male">
+          <div class="option-card-dot"></div><span>Male</span>
+        </label>
+        <label class="option-card" onclick="selectOptionCard(this, 'gender', 'nonbinary')">
+          <input type="radio" name="gender" value="nonbinary">
+          <div class="option-card-dot"></div><span>Non-binary</span>
+        </label>
+        <label class="option-card" onclick="selectOptionCard(this, 'gender', 'other'); document.getElementById('gender-other-wrap').style.display='block'">
+          <input type="radio" name="gender" value="other">
+          <div class="option-card-dot"></div><span>Other</span>
+        </label>
+      </div>
+      <div id="gender-other-wrap" style="display:none; margin-top:10px;">
+        <input type="text" id="gender_other_text" placeholder="Please specify…">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">3. Highest education level</label>
+      <select id="demo_edu">
+        <option value="">— select —</option>
+        <option value="none">No formal qualification</option>
+        <option value="secondary">Secondary school (e.g. high school, Abitur, A-levels)</option>
+        <option value="vocational">Vocational training / Apprenticeship</option>
+        <option value="bachelor">Bachelor's degree</option>
+        <option value="master">Master's degree</option>
+        <option value="phd">Doctorate (PhD)</option>
+        <option value="other">Other</option>
+        <option value="prefer_not">Prefer not to say</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="eyebrow" style="margin-bottom:16px">Prior experience</div>
+    <div class="likert-group" style="margin-bottom:0">
+      <div class="likert-label">4. Prior experience with Large Language Models / AI Chatbots</div>
+      <div class="likert-scale">
+        <label><input type="radio" name="llm_exp" value="1"><div class="pip"></div><span class="pip-label">1 — No experience</span></label>
+        <label><input type="radio" name="llm_exp" value="2"><div class="pip"></div><span class="pip-label">2</span></label>
+        <label><input type="radio" name="llm_exp" value="3"><div class="pip"></div><span class="pip-label">3</span></label>
+        <label><input type="radio" name="llm_exp" value="4"><div class="pip"></div><span class="pip-label">4</span></label>
+        <label><input type="radio" name="llm_exp" value="5"><div class="pip"></div><span class="pip-label">5 — Very experienced</span></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="eyebrow" style="margin-bottom:16px">Open comments</div>
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">Any thoughts or comments about the study? (optional)</label>
+      <textarea id="open_comment" placeholder="Write anything you'd like to share…"></textarea>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn" onclick="demoNext()">Continue →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 8 · DEBRIEF
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-debrief">
+  <div class="eyebrow">Debrief</div>
+  <h1>Thank you for participating!</h1>
+
+  <div class="debrief-box">
+    <h3>Important information about this study</h3>
+    <p>The AI assistant you interacted with was <strong>not a real AI</strong>. This study used a <em>Wizard-of-Oz</em> technique: the responses were pre-scripted by the researchers. This approach was necessary to ensure that all participants in the same experimental condition received identical responses, allowing us to test the effect of the responses in a controlled way.</p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-bottom:10px">What the study was about</h2>
+    <p>This study investigates whether <strong>personalised</strong> versus <strong>generic</strong> chatbot responses influence how inspired users feel and how motivated they are to act. The study is part of research conducted at the University of Cambridge (MLMI16).</p>
+    <p style="margin-bottom:0">Your data has been recorded anonymously and will only be used for research purposes. If you have any concerns, please contact: <strong><a href="mailto:bb720@cam.ac.uk">bb720@cam.ac.uk</a></strong></p>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn" onclick="submitAndFinish()">Submit & Finish ✓</button>
+  </div>
+  <p class="error-msg" id="submit-error" style="margin-top:12px">There was a problem saving your data. Please try again or contact the researcher.</p>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 9 · THANK YOU
+══════════════════════════════════════════ -->
+<div class="screen" id="screen-thankyou">
+  <div style="text-align:center; padding-top: 60px;">
+    <div class="check-circle">✓</div>
+    <h1>All done!</h1>
+    <p style="max-width:380px; margin: 0 auto 24px;">Your responses have been saved. Thank you for taking the time to participate in this research.</p>
+    <p style="font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--text-muted);">You may now close this window.</p>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+// ─────────────────────────────────────────────
+// CONFIG — set before running live 
+// ─────────────────────────────────────────────
+const AIRTABLE_BASE_ID = 'YOUR_AIRTABLE_BASE_ID';   // e.g. appXXXXXXXXXXXXXX
+const AIRTABLE_TABLE   = 'user_study_MLMI16';      // table name in Airtable
+const AIRTABLE_API_KEY = 'YOUR_AIRTABLE_API_KEY'; // Personal Access Token (scoped to base + data.records:write)
+
+// ─────────────────────────────────────────────
+// SESSION STATE
+// ─────────────────────────────────────────────
+const SESSION_ID = 'sess_' + Math.random().toString(36).substr(2,9);
+let   CONDITION  = null;
+const START_TIME = Date.now();
+
+// Condition assignment: simple 50/50 random split.
+(async function assignCondition() {
+  CONDITION = Math.random() < 0.5 ? 'personalised' : 'generic';
+  console.log(`Random assign → ${CONDITION}`);
+})();
+
+let chatBudget   = null;   // 'low' | 'high'
+let chatActivity = null;   // 'relaxing' | 'adventurous'
+let saveChoice   = null;   // 'yes' | 'no'
+let chatStep     = 0;
+let chatStartTime = null;
+
+// Cooking scenario state
+let cookingDiet    = null;  // 'vegetarian' | 'meat'
+let cookingTime    = null;  // 'quick' | 'leisurely'
+let saveChoiceC    = null;
+let chat2StartTime = null;
+
+// ─────────────────────────────────────────────
+// SCRIPTED RESPONSES
+// ─────────────────────────────────────────────
+const RESPONSES = {
+  personalised: {
+    low_relaxing:     `Since you're looking for a low-budget and relaxing weekend, a great option could be a countryside retreat near your city. You could book a small guesthouse or Airbnb in a quiet village, spend time walking in nature, reading, and visiting a local café. Many rural areas also have inexpensive thermal baths or lakes where you can unwind without spending much. This kind of trip keeps costs low while giving you real downtime.`,
+    low_adventurous:  `For a low-budget but active weekend, you might consider a hiking trip in a nearby national park. You could stay at a simple hostel or campsite and spend the days exploring scenic trails or renting a bike. Many parks offer free or low-cost outdoor activities that still feel adventurous. This way, you stay within budget while keeping the weekend energetic and engaging.`,
+    high_relaxing:    `Since your budget is flexible and you're aiming for relaxation, a spa hotel or wellness retreat could be ideal. You might enjoy a boutique hotel with a sauna, massages, and slow mornings with room service. Alternatively, a lakeside resort with guided yoga sessions could offer a calm but elevated experience. With budget flexibility, you can fully prioritise comfort and recovery.`,
+    high_adventurous: `With a flexible budget and a preference for something active, you could plan a short city break combined with a guided experience — for example, a food tour, a kayaking session, or even a beginner climbing workshop. Another option would be a short adventure trip such as canyoning or a surfing lesson. Your flexible budget allows you to choose something memorable and dynamic.`
+  },
+  generic: `A weekend trip can take many forms. You could visit a nearby city to explore attractions, museums, and local restaurants, or head to the countryside for nature walks and quiet surroundings. Some travelers enjoy active options like hiking or cycling, while others prefer relaxing experiences such as spa visits or lakeside stays. Accommodation can range from budget hostels to boutique hotels. A short getaway often combines sightseeing, food, outdoor activities, and downtime.`
+};
+
+// ─────────────────────────────────────────────
+// COOKING SCRIPTED RESPONSES
+// ─────────────────────────────────────────────
+const COOKING_RESPONSES = {
+  personalised: {
+    vegetarian_quick:    `Since you're looking for a quick vegetarian meal, a great option could be a simple pasta with a roasted cherry tomato and basil sauce. You just need to boil pasta, halve the tomatoes, roast them with olive oil and garlic for 15 minutes, then toss everything together with fresh basil and parmesan. It's ready in under 25 minutes and very satisfying.`,
+    vegetarian_leisurely:`Since you enjoy vegetarian food and have time to cook, you could try a proper homemade vegetable curry. Start with a base of onions, garlic, and ginger, add spices like cumin, coriander, and turmeric, then build up with chickpeas, spinach, and a tin of coconut milk. Served with basmati rice and a flatbread, it's a deeply flavourful meal worth the extra time.`,
+    meat_quick:          `For a quick meal with meat, a good option would be a pan-fried chicken breast with a lemon and herb sauce. Season the chicken, sear it in a hot pan for 6–7 minutes per side, then deglaze with a splash of white wine, lemon juice, and a knob of butter. Serve with some quickly steamed greens or crusty bread — it's on the table in about 20 minutes.`,
+    meat_leisurely:      `With time to cook and a preference for meat, you could make a slow-braised beef stew. Brown the beef in batches, then cook it low and slow with onions, carrots, celery, red wine, and stock for about 2 hours until tender. The result is rich and comforting, and it pairs beautifully with mashed potatoes or a crusty baguette.`
+  },
+  generic: `There are many options for a home-cooked evening meal. You might consider a pasta dish with a simple tomato or cream sauce, a stir-fry with vegetables and your choice of protein, or a warming soup or curry. If you have more time, a slow-cooked dish like a stew or a baked recipe could be rewarding. Most meals benefit from fresh herbs, a good seasoning, and pairing with a simple side like rice, bread, or a salad.`
+};
+
+// ─────────────────────────────────────────────
+// SCREEN NAVIGATION
+// ─────────────────────────────────────────────
+const SCREENS = [
+  'screen-info','screen-consent','screen-pre','screen-intro',
+  'screen-chat','screen-post1','screen-post2',
+  'screen-intro2','screen-chat2','screen-post1c','screen-post2c',
+  'screen-demo','screen-debrief','screen-thankyou'
+];
+const PROGRESS = [0,8,16,24,34,44,52,58,66,74,82,88,95,100];
+let currentScreen = 0;
+
+function showScreen(idx) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(SCREENS[idx]).classList.add('active');
+  document.getElementById('progress-bar').style.width = PROGRESS[idx] + '%';
+  window.scrollTo({top:0, behavior:'smooth'});
+  currentScreen = idx;
+}
+
+// ─────────────────────────────────────────────
+// INFO SHEET
+// ─────────────────────────────────────────────
+function infoNext() {
+  showScreen(1);
+}
+
+// ─────────────────────────────────────────────
+// CONSENT
+// ─────────────────────────────────────────────
+function consentNext() {
+  const boxes = ['c1','c2','c3','c4','c5'];
+  const allChecked = boxes.every(id => document.getElementById(id).checked);
+  if (!allChecked) {
+    document.getElementById('consent-error').classList.add('visible');
+    return;
+  }
+  document.getElementById('consent-error').classList.remove('visible');
+  showScreen(2);
+}
+
+// ─────────────────────────────────────────────
+// PRE-MEASURES
+// ─────────────────────────────────────────────
+function preNext() {
+  const required = ['ti1','ti2','ti3','ti4','travel_interest','cooking_interest'];
+  const allAnswered = required.every(n => document.querySelector(`input[name="${n}"]:checked`));
+  if (!allAnswered) {
+    document.getElementById('pre-error').classList.add('visible');
+    return;
+  }
+  document.getElementById('pre-error').classList.remove('visible');
+  showScreen(3);
+}
+
+// ─────────────────────────────────────────────
+// CHAT ENGINE
+// ─────────────────────────────────────────────
+function goToChat() {
+  if (!CONDITION) {
+    CONDITION = Math.random() < 0.5 ? 'personalised' : 'generic';
+    console.warn('Condition not yet resolved; fallback to random:', CONDITION);
+  }
+  showScreen(4);
+  chatStartTime = Date.now();
+  startChat();
+}
+
+function startChat() {
+  // AI greets first
+  setTimeout(() => {
+    showTyping();
+    setTimeout(() => {
+      removeTyping();
+      addBotMessage("Hi! I'm here to help! What can I do for you?");
+      // Show the user's opening message as a choice button
+      showChoices([
+        { label: "I need ideas for a weekend trip.", value: "start" }
+      ], handleOpening);
+    }, 1200);
+  }, 400);
+}
+
+function handleOpening(val, label) {
+  disableChoices();
+  addUserMessage(label);
+  setTimeout(() => {
+    showTyping();
+    setTimeout(() => {
+      removeTyping();
+      addBotMessage("Sure! Tell me — what kind of budget are you thinking about for this weekend?");
+      showChoices([
+        { label: "Keep it low cost!", value: "low" },
+        { label: "Budget is flexible!", value: "high" }
+      ], handleBudget);
+    }, 1200);
+  }, 700);
+}
+
+function handleBudget(val, label) {
+  chatBudget = val;
+  disableChoices();
+  addUserMessage(label);
+  setTimeout(() => {
+    showTyping();
+    setTimeout(() => {
+      removeTyping();
+      addBotMessage("Got it! What kind of vibe are you going for?");
+      showChoices([
+        { label: "Relaxing and laid-back.", value: "relaxing" },
+        { label: "Active and adventurous.", value: "adventurous" }
+      ], handleActivity);
+    }, 1300);
+  }, 700);
+}
+
+function handleActivity(val, label) {
+  chatActivity = val;
+  disableChoices();
+  addUserMessage(label);
+  setTimeout(() => {
+    showTyping();
+    setTimeout(() => {
+      removeTyping();
+      let responseText;
+      if (CONDITION === 'personalised') {
+        const key = `${chatBudget}_${chatActivity}`;
+        responseText = RESPONSES.personalised[key];
+      } else {
+        responseText = RESPONSES.generic;
+      }
+      addBotMessage(responseText);
+      clearChoices();
+      // After response shown, show "continue" button
+      setTimeout(() => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-full';
+        btn.style.marginTop = '20px';
+        btn.textContent = 'Continue to questions →';
+        btn.onclick = () => showScreen(5);
+        document.getElementById('chat-choices').appendChild(btn);
+      }, 600);
+    }, 2000);
+  }, 800);
+}
+
+// ── Chat UI helpers ──
+function addUserMessage(text) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.innerHTML = `<div class="msg-avatar">You</div><div class="msg-bubble">${text}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function addBotMessage(text) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.innerHTML = `<div class="msg-avatar">✦</div><div class="msg-bubble">${text}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg bot'; div.id = 'typing-indicator';
+  div.innerHTML = `<div class="msg-avatar">✦</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function removeTyping() {
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
+}
+function showChoices(options, handler) {
+  const container = document.getElementById('chat-choices');
+  container.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = opt.label;
+    btn.onclick = () => handler(opt.value, opt.label);
+    container.appendChild(btn);
+  });
+}
+function disableChoices() {
+  document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+}
+function clearChoices() {
+  document.getElementById('chat-choices').innerHTML = '';
+}
+
+// ─────────────────────────────────────────────
+// POST-SCREEN 1: save + inspired-by
+// ─────────────────────────────────────────────
+function setSave(val) {
+  saveChoice = val;
+  document.querySelectorAll('.save-row .save-btn').forEach(b => b.classList.remove('selected'));
+  event.target.classList.add('selected');
+}
+
+function post1Next() {
+  const req = ['ib1','ib2'];
+  const ok = req.every(n => document.querySelector(`input[name="${n}"]:checked`));
+  if (!ok || !saveChoice) {
+    document.getElementById('post1-error').classList.add('visible');
+    return;
+  }
+  document.getElementById('post1-error').classList.remove('visible');
+  showScreen(6);
+}
+
+// ─────────────────────────────────────────────
+// POST-SCREEN 2: inspired-to + manip check + LLM freq
+// ─────────────────────────────────────────────
+function post2Next() {
+  const req = ['it1','it2','mc1','mc2'];
+  const ok = req.every(n => document.querySelector(`input[name="${n}"]:checked`));
+  if (!ok) {
+    document.getElementById('post2-error').classList.add('visible');
+    return;
+  }
+  document.getElementById('post2-error').classList.remove('visible');
+  showScreen(7); // cooking intro
+}
+
+// ─────────────────────────────────────────────
+// COOKING CHAT ENGINE
+// ─────────────────────────────────────────────
+function goToChat2() {
+  showScreen(8);
+  chat2StartTime = Date.now();
+  setTimeout(() => {
+    showTyping2();
+    setTimeout(() => {
+      removeTyping2();
+      addBotMessage2("Hi again! I'm here to help. What can I do for you?");
+      showChoices2([
+        { label: "I'm looking for ideas for what to cook this evening.", value: "start" }
+      ], handleOpening2);
+    }, 1200);
+  }, 400);
+}
+
+function handleOpening2(val, label) {
+  disableChoices2();
+  addUserMessage2(label);
+  setTimeout(() => {
+    showTyping2();
+    setTimeout(() => {
+      removeTyping2();
+      addBotMessage2("Sure! Do you prefer vegetarian meals, or are you happy to cook with meat?");
+      showChoices2([
+        { label: "I prefer vegetarian.", value: "vegetarian" },
+        { label: "I'm happy with meat.", value: "meat" }
+      ], handleDiet);
+    }, 1200);
+  }, 700);
+}
+
+function handleDiet(val, label) {
+  cookingDiet = val;
+  disableChoices2();
+  addUserMessage2(label);
+  setTimeout(() => {
+    showTyping2();
+    setTimeout(() => {
+      removeTyping2();
+      addBotMessage2("Got it! How much time do you have to cook tonight?");
+      showChoices2([
+        { label: "Something quick — under 30 minutes.", value: "quick" },
+        { label: "I have time for something more leisurely.", value: "leisurely" }
+      ], handleCookingTime);
+    }, 1200);
+  }, 700);
+}
+
+function handleCookingTime(val, label) {
+  cookingTime = val;
+  disableChoices2();
+  addUserMessage2(label);
+  setTimeout(() => {
+    showTyping2();
+    setTimeout(() => {
+      removeTyping2();
+      let responseText;
+      if (CONDITION === 'personalised') {
+        const key = `${cookingDiet}_${cookingTime}`;
+        responseText = COOKING_RESPONSES.personalised[key];
+      } else {
+        responseText = COOKING_RESPONSES.generic;
+      }
+      addBotMessage2(responseText);
+      clearChoices2();
+      setTimeout(() => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-full';
+        btn.style.marginTop = '20px';
+        btn.textContent = 'Continue to questions →';
+        btn.onclick = () => showScreen(9);
+        document.getElementById('chat2-choices').appendChild(btn);
+      }, 600);
+    }, 2000);
+  }, 800);
+}
+
+// Chat2 UI helpers
+function addUserMessage2(text) {
+  const msgs = document.getElementById('chat2-messages');
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.innerHTML = `<div class="msg-avatar">You</div><div class="msg-bubble">${text}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function addBotMessage2(text) {
+  const msgs = document.getElementById('chat2-messages');
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.innerHTML = `<div class="msg-avatar">✦</div><div class="msg-bubble">${text}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function showTyping2() {
+  const msgs = document.getElementById('chat2-messages');
+  const div = document.createElement('div');
+  div.className = 'msg bot'; div.id = 'typing-indicator2';
+  div.innerHTML = `<div class="msg-avatar">✦</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function removeTyping2() {
+  const el = document.getElementById('typing-indicator2');
+  if (el) el.remove();
+}
+function showChoices2(options, handler) {
+  const container = document.getElementById('chat2-choices');
+  container.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = opt.label;
+    btn.onclick = () => handler(opt.value, opt.label);
+    container.appendChild(btn);
+  });
+}
+function disableChoices2() {
+  document.querySelectorAll('#chat2-choices .choice-btn').forEach(b => b.disabled = true);
+}
+function clearChoices2() {
+  document.getElementById('chat2-choices').innerHTML = '';
+}
+
+// ─────────────────────────────────────────────
+// COOKING POST-SURVEY
+// ─────────────────────────────────────────────
+function setSaveC(val) {
+  saveChoiceC = val;
+  document.querySelectorAll('.save-row .save-btn').forEach(b => b.classList.remove('selected'));
+  event.target.classList.add('selected');
+}
+
+function post1cNext() {
+  const req = ['ib1c','ib2c'];
+  const ok = req.every(n => document.querySelector(`input[name="${n}"]:checked`));
+  if (!ok || !saveChoiceC) {
+    document.getElementById('post1c-error').classList.add('visible');
+    return;
+  }
+  document.getElementById('post1c-error').classList.remove('visible');
+  showScreen(10);
+}
+
+function post2cNext() {
+  const req = ['it1c','it2c','mc1c','mc2c'];
+  const ok = req.every(n => document.querySelector(`input[name="${n}"]:checked`));
+  if (!ok) {
+    document.getElementById('post2c-error').classList.add('visible');
+    return;
+  }
+  document.getElementById('post2c-error').classList.remove('visible');
+  showScreen(11); // demographics
+}
+
+// ─────────────────────────────────────────────
+// DEMOGRAPHICS
+// ─────────────────────────────────────────────
+function demoNext() {
+  showScreen(12); // debrief
+}
+
+// ─────────────────────────────────────────────
+// OPTION CARD HELPER
+// ─────────────────────────────────────────────
+function selectOptionCard(el, name, val) {
+  const container = el.closest('.option-cards');
+  container.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ─────────────────────────────────────────────
+// COLLECT ALL DATA
+// ─────────────────────────────────────────────
+function collectData() {
+  const r = (name) => {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? el.value : null;
+  };
+  const chatDuration = chatStartTime ? Math.round((Date.now() - chatStartTime) / 1000) : null;
+  const totalDuration = Math.round((Date.now() - START_TIME) / 1000);
+
+  return {
+    session_id:      SESSION_ID,
+    condition:       CONDITION,
+    timestamp:       new Date().toISOString(),
+    total_duration_s: totalDuration,
+    chat_duration_s:  chatDuration,
+
+    // Pre-measures
+    trait_insp_1:    r('ti1'),
+    trait_insp_2:    r('ti2'),
+    trait_insp_3:    r('ti3'),
+    trait_insp_4:    r('ti4'),
+    travel_interest:  r('travel_interest'),
+    cooking_interest: r('cooking_interest'),
+
+    // Chat choices — travel
+    budget_choice:   chatBudget,
+    activity_choice: chatActivity,
+
+    // Behavioural DV — travel
+    save_choice:     saveChoice,
+
+    // Inspired-by — travel
+    inspired_by_1:   r('ib1'),
+    inspired_by_2:   r('ib2'),
+
+    // Inspired-to — travel
+    inspired_to_1:   r('it1'),
+    inspired_to_2:   r('it2'),
+
+    // Manipulation check — travel
+    manip_check_1:   r('mc1'),
+    manip_check_2:   r('mc2'),
+
+    // Chat choices — cooking
+    cooking_diet:    cookingDiet,
+    cooking_time:    cookingTime,
+
+    // Behavioural DV — cooking
+    save_choice_c:   saveChoiceC,
+
+    // Inspired-by — cooking
+    inspired_by_1c:  r('ib1c'),
+    inspired_by_2c:  r('ib2c'),
+
+    // Inspired-to — cooking
+    inspired_to_1c:  r('it1c'),
+    inspired_to_2c:  r('it2c'),
+
+    // Manipulation check — cooking
+    manip_check_1c:  r('mc1c'),
+    manip_check_2c:  r('mc2c'),
+
+    // Confound
+    llm_experience:  r('llm_exp'),
+
+    // Demographics
+    age:             document.getElementById('demo_age').value || null,
+    gender:          r('gender'),
+    gender_other:    document.getElementById('gender_other_text') ? document.getElementById('gender_other_text').value || null : null,
+    education:       document.getElementById('demo_edu').value || null,
+
+    // Free text
+    open_comment:    document.getElementById('open_comment').value || null,
+  };
+}
+
+// ─────────────────────────────────────────────
+// SUBMIT TO AIRTABLE
+// ─────────────────────────────────────────────
+let submitted = false;
+
+async function submitAndFinish() {
+  if (submitted) return;
+  submitted = true;
+
+  const btn = document.querySelector('#screen-debrief .btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  const data = collectData();
+
+  if (AIRTABLE_API_KEY === 'YOUR_AIRTABLE_API_KEY' || AIRTABLE_BASE_ID === 'YOUR_AIRTABLE_BASE_ID') {
+    console.log('STUDY DATA (Airtable not configured):', JSON.stringify(data, null, 2));
+    showScreen(13);
+    return;
+  }
+
+  try {
+    const res = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE)}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ fields: data })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      console.error('Airtable error:', err);
+      submitted = false;
+      btn.disabled = false;
+      btn.textContent = 'Submit & Finish ✓';
+      document.getElementById('submit-error').classList.add('visible');
+      return;
+    }
+    showScreen(13);
+  } catch(e) {
+    console.error('Submit failed:', e);
+    submitted = false;
+    btn.disabled = false;
+    btn.textContent = 'Submit & Finish ✓';
+    document.getElementById('submit-error').classList.add('visible');
+  }
+}
+
+</script>
+</body>
+</html>
